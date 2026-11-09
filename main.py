@@ -1,3 +1,4 @@
+
 import logging
 import asyncio
 from pyrogram import Client, filters
@@ -62,7 +63,10 @@ async def check_subscription(client, message):
             reply_markup=keyboard
         )
 
-if __name__ == "__main__":
-    print("বট সফলভাবে চালু হয়েছে...")
-    app.run()
+async def main():
+    print("বট সফলভাবে চালু হচ্ছে...")
+    await app.start()
+    await asyncio.gather()
 
+if __name__ == "__main__":
+    asyncio.run(main())
