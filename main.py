@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import UserNotParticipant
@@ -61,5 +62,7 @@ async def check_subscription(client, message):
             reply_markup=keyboard
         )
 
-print("বট সফলভাবে চালু হয়েছে...")
-app.run()
+if __name__ == "__main__":
+    print("বট সফলভাবে চালু হয়েছে...")
+    app.run()
+
