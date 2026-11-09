@@ -1,73 +1,71 @@
 import logging
-import asyncio
-from pyrogram import Client, filters, idle
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.errors import UserNotParticipant
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ChatPermissions
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from telegram.error import TelegramError
 
 logging.basicConfig(level=logging.INFO)
 
-API_ID = 24872124
-API_HASH = "6f432575f63d6b0593b4a2c0c7a523b0"
 BOT_TOKEN = "9174331696:AAEQqadAVKZG8pB4PxIs8QokRZB8mFMgN7U"
-
 CHANNEL_ID = -1004484306946
 GROUP_ID = -1003876095127
 CHANNEL_INVITE_LINK = "https://t.me/multi_verse0"
 
-app = Client(
-    "fsub_bot",
-    api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN
-)
-
-@app.on_message(filters.chat(GROUP_ID) & ~filters.service & ~filters.me)
-async def check_subscription(client, message):
-    if not message.from_user:
+async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.effective_message
+    user = update.effective_user
+    
+    if not message or not user or message.chat.id != GROUP_ID:
         return
-    
-    user_id = message.from_user.id
-    
+
+    # অ্যাডমিন চেক
     try:
-        member = await client.get_chat_member(GROUP_ID, user_id)
-        if member.status in ["administrator", "creator"]:
+        chat_member = await context.bot.get_chat_member(chat_id=GROUP_ID, user_id=user.id)
+        if chat_member.status in ["administrator", "creator"]:
             return
-    except Exception:
+    except TelegramError:
         pass
 
+    # চ্যানেলে সাবস্ক্রাইব করা আছে কিনা চেক
+    is_member = False
     try:
-        await client.get_chat_member(CHANNEL_ID, user_id)
-    except UserNotParticipant:
+        member_status = await context.bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user.id)
+        if member_status.status in ["member", "administrator", "creator"]:
+            is_member = True
+    except TelegramError:
+        pass
+
+    if not is_member:
         try:
             await message.delete()
-        except Exception:
+        except TelegramError:
             pass
         
         try:
-            await client.restrict_chat_member(
+            await context.bot.restrict_chat_member(
                 chat_id=GROUP_ID,
-                user_id=user_id,
-                permissions=pyrogram.types.ChatPermissions(can_send_messages=False)
+                user_id=user.id,
+                permissions=ChatPermissions(can_send_messages=False)
             )
-        except Exception:
+        except TelegramError:
             pass
 
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("জয়েন করুন", url=CHANNEL_INVITE_LINK)]
-        ])
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("চ্যানেলে জয়েন করুন", url=CHANNEL_INVITE_LINK)
+        ]])
         
-        await client.send_message(
+        await context.bot.send_message(
             chat_id=GROUP_ID,
-            text=f"হ্যালো [{message.from_user.first}](tg://user?id={user_id})!\n\nগ্রুপে চ্যাট করার আগে আমাদের চ্যানেলে জয়েন করতে হবে।",
-            reply_markup=keyboard
+            text=f"হ্যালো [{user.first_name}](tg://user?id={user.id})!\n\nগ্রুপে মেসেজ পাঠানোর আগে আমাদের চ্যানেলে জয়েন করতে হবে।",
+            reply_markup=keyboard,
+            parse_mode="Markdown"
         )
 
-async def main():
-    await app.start()
-    print("বট সফলভাবে চালু হয়েছে এবং রান করছে...")
-    await idle()
-    await app.stop()
+def main():
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    application.add_handler(MessageHandler(filters.ALL & ~filters.StatusUpdate.ALL, check_subscription))
+    
+    print("বট সফলভাবে চালু হয়েছে...")
+    application.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
-
+    main()
