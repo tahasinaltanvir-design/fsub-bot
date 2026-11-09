@@ -1,7 +1,6 @@
-
 import logging
 import asyncio
-from pyrogram import Client, filters
+from pyrogram import Client, filters, idle
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import UserNotParticipant
 
@@ -64,9 +63,11 @@ async def check_subscription(client, message):
         )
 
 async def main():
-    print("বট সফলভাবে চালু হচ্ছে...")
     await app.start()
-    await asyncio.gather()
+    print("বট সফলভাবে চালু হয়েছে এবং রান করছে...")
+    await idle()
+    await app.stop()
 
 if __name__ == "__main__":
     asyncio.run(main())
+
